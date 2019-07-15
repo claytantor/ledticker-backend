@@ -91,7 +91,7 @@ def cronWeather():
             'body':'{0}|{1}|F'.format(condition, temperature),
             'type':'weather',
             'behavior': 'current',
-            'color':"#3366ff",
+            'color':"#eebb00",
             'elapsed': 20.0
         }
 
