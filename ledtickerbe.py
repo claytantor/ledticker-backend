@@ -63,7 +63,8 @@ def getWeatherInfo(zip, url, appid):
 def cronWeather():
 
     print("getting the current weather.")
-
+    print(json.dumps(config))
+    print(json.dumps(config['weather']['zip']))
     status_code, response_model = getWeatherInfo(
         config['weather']['zip'], 
         config['weather']['url_weather'],  
@@ -161,6 +162,8 @@ def main(argv):
 
     args = parser.parse_args()
     config = loadConfig(args.config)['ledtickerbe']
+    print(json.dumps(config))
+    print(config['weather']['zip'])
     
     schedule.every(config['jobs']['cronWeather']['rate']).minutes.do(cronWeather)
     schedule.every(config['jobs']['cronForecast']['rate']).minutes.do(cronForecast)
