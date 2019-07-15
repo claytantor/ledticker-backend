@@ -9,9 +9,18 @@ import math
 import datetime
 import pytz
 
-config = {}
 
-def loadConfig(configFile):
+def loadConfig():
+
+    # Read in command-line parameters
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument("-c", "--config", action="store", required=True, dest="config", help="the YAML configuration file")
+
+    args = parser.parse_args()
+    configFile = args.config
+    # config = loadConfig(args.config)['ledtickerbe']
+
     cfg = None
     with open(configFile, 'r') as ymlfile:
         cfg = yaml.load(ymlfile, Loader=yaml.FullLoader)
@@ -64,6 +73,8 @@ def cronWeather():
 
     print("getting the current weather.")
 
+    config = loadConfig()['ledtickerbe']
+
     status_code, response_model = getWeatherInfo(
         config['weather']['zip'], 
         config['weather']['url_weather'],  
@@ -96,6 +107,8 @@ def cronWeather():
 def cronForecast():
 
     print("getting the forcasted weather.")
+
+    config = loadConfig()['ledtickerbe']
 
     status_code, response_model = getWeatherInfo(
         config['weather']['zip'], 
@@ -154,13 +167,7 @@ def cronForecast():
 def main(argv):
     print("starting ledticker backend with flashlex.")
 
-    # Read in command-line parameters
-    parser = argparse.ArgumentParser()
-
-    parser.add_argument("-c", "--config", action="store", required=True, dest="config", help="the YAML configuration file")
-
-    args = parser.parse_args()
-    config = loadConfig(args.config)['ledtickerbe']
+    config = loadConfig()['ledtickerbe']
     
     schedule.every(config['jobs']['cronWeather']['rate']).minutes.do(cronWeather)
     schedule.every(config['jobs']['cronForecast']['rate']).minutes.do(cronForecast)

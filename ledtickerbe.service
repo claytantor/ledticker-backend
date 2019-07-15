@@ -3,7 +3,7 @@ Description=ledtickerbe
 After=multi-user.target
 
 [Service]
-ExecStart=/home/pi/projects/ledticker-backend/venv/bin/python -u /home/pi/projects/ledticker-backend/ledtickerbe.py --led-no-hardware-pulse true -m adafruit-hat -r 32 --led-cols 32 --log DEBUG --config /home/pi/projects/ledticker-backend/config.yml
+ExecStart=/home/pi/projects/ledticker-backend/venv/bin/python -u /home/pi/projects/ledticker-backend/ledtickerbe.py --config /home/pi/projects/ledticker-backend/config.yaml
 StandardOutput=syslog
 StandardError=syslog
 SyslogIdentifier=ledtickerbe
