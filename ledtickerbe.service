@@ -3,11 +3,7 @@ Description=ledtickerbe
 After=multi-user.target
 
 [Service]
-<<<<<<< HEAD
-ExecStart=/home/pi/projects/ledticker-backend/venv/bin/python -u /home/pi/projects/ledticker-backend/ledtickerbe.py --config /home/pi/projects/ledticker-backend/config.yaml
-=======
 ExecStart=/home/pi/data/github.com/claytantor/ledticker-backend/venv/bin/python -u /home/pi/data/github.com/claytantor/ledticker-backend/ledtickerbe.py --config /home/pi/data/github.com/claytantor/ledticker-backend/config.yaml
->>>>>>> 7f5f095c73170b3b6e8f26b1288be4da25476c47
 StandardOutput=syslog
 StandardError=syslog
 SyslogIdentifier=ledtickerbe
