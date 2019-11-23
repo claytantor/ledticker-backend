@@ -9,6 +9,10 @@ import math
 import datetime
 import pytz
 
+from expiringdict import ExpiringDict
+from lxml import etree, html
+
+cache = ExpiringDict(max_len=200, max_age_seconds=600)
 
 def loadConfig():
 
@@ -40,13 +44,30 @@ def getFlashLexToken(flashlexApiEndpoint, user, password):
         raise ValueError("could not authenticate")
 
 def sendFlashlexMessageToThing(thingId, messageModel, flashlexApiEndpoint, user, password):
-    accessToken = getFlashLexToken(flashlexApiEndpoint, user, password)
-    headers = {'Authorization': "Bearer {0}".format(accessToken), 'Content-Type':"application/jsom"}
-    publish_response = requests.post(
-        '{flashlexApiEndpoint}/things/{thingId}/publish'.format(flashlexApiEndpoint=flashlexApiEndpoint, thingId=thingId), 
-        data=json.dumps(messageModel), 
-        headers=headers)
-    print("sending to thing:{0} message:{1} response from flashlex:{2}".format(thingId, json.dumps(messageModel), publish_response.status_code))
+    
+    # encoding using encode() 
+    # then sending to md5() 
+    md5_hash = hashlib.md5(json.dumps(messageModel).encode()) 
+    
+    # add identifiers, we need to remove these and
+    # recompute hash on client side
+    messageModel['_id'] = str(uuid.uuid4())
+    messageModel['_hash'] = md5_hash.hexdigest()
+
+
+    # check if its in the cache, if missing then send
+    if(cache.get(messageModel['_hash']) == None):
+        cache[messageModel['_hash']] = messageModel
+        accessToken = getFlashLexToken(flashlexApiEndpoint, user, password)
+        headers = {'Authorization': "Bearer {0}".format(accessToken), 'Content-Type':"application/jsom"}
+        publish_response = requests.post(
+            '{flashlexApiEndpoint}/things/{thingId}/publish'.format(flashlexApiEndpoint=flashlexApiEndpoint, thingId=thingId), 
+            data=json.dumps(messageModel), 
+            headers=headers)
+        print("sending to thing:{0} message:{1} response from flashlex:{2}".format(thingId, json.dumps(messageModel), publish_response.status_code))
+    else:
+        print("found message in cache", messageModel['_hash'])
+
 
 def Kelvin2Fahrenheit(temp_kelvin):
     #return ((temp_kelvin-273.15)*9.0/5.0)+32.0
@@ -56,7 +77,7 @@ def elapsed_hours_readable(seconds_elapsed):
     hours, rem = divmod(seconds_elapsed, 3600)
     return '{0} hours'.format(int(math.ceil(hours)))
 
-def getWeatherInfo(zip, url, appid):
+def getWeatherInfo(zip, url, appid): 
     params_model = {'zip': zip, 'APPID': appid}
     r = requests.get(url, params=params_model)
 
