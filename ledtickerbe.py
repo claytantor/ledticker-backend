@@ -8,11 +8,13 @@ import time
 import math
 import datetime
 import pytz
+import hashlib
+import uuid
 
 from expiringdict import ExpiringDict
 from lxml import etree, html
 
-cache = ExpiringDict(max_len=200, max_age_seconds=600)
+cache = ExpiringDict(max_len=20, max_age_seconds=600)
 
 def loadConfig():
 
@@ -185,6 +187,92 @@ def cronForecast():
             config['flashlex']['user'],
             config['flashlex']['password'])
 
+
+
+def handleRaceTable(table):
+    tree = html.fromstring(etree.tostring(table, pretty_print=True).decode("utf-8"))
+    pval = tree.xpath('//p[@style="font-size: 55pt; margin-bottom:-10px"]/text()')
+    # print(pval)
+    ival = tree.xpath('//img[@width="100"]/@src')
+    # print(ival)
+
+    items = []
+    for i in range(len(ival)):
+        name = ival[i].replace("/","").replace(".png","")
+        percent = round(float(pval[i].replace("%",""))/100.0, 4)
+        items.append({'name':name,'value':percent})
+    
+    return items
+
+
+def filterDemocratic(bets): 
+    if('Democratic' in bets['name']):
+        return True
+    else:
+        return False
+    # letters = ['a', 'e', 'i', 'o', 'u'] 
+    # if (variable in letters): 
+    #     return True
+    # else: 
+    #     return False
+
+def parseRaces(tree):
+    tables = tree.xpath('//div[@class="container"]/table')
+    # print(tables)
+    races = []
+    for i in range(len(tables)):
+        items = handleRaceTable(tables[i])
+        if(i==0):
+            races.append({"name":"Democratic Primary", "rankings": items})
+        if(i==1):
+            races.append({"name":"Presidential Election", "rankings": items})
+        if(i==2):
+            races.append({"name":"Republican Primary", "rankings": items})
+
+    return races
+
+
+def cronElectionBets():
+
+    print('getting election bets')
+
+    config = loadConfig()['ledtickerbe']
+
+    page = requests.get(config['electionbettingods']['url_main'])
+    tree = html.fromstring(page.content)
+    races = parseRaces(tree)
+
+    items = filter(filterDemocratic, races)
+
+#    {
+#       "name": "Republican Primary",
+#       "rankings": [
+#          {
+#             "name": "Trump",
+#             "value": 0.784
+#          },
+    for race in items:
+        
+        first = race['rankings'][0]
+        name = first['name']
+        percentage = "{:.0%}".format(first['value'])
+        messageModel = {
+                'body':'{0}|{1}|'.format(name, percentage),
+                'type':'weather',
+                'behavior': 'current',
+                'color':"#4287f5",
+                'elapsed': 20.0
+            }
+
+        sendFlashlexMessageToThing(
+            config['flashlex']['thingId'], 
+            messageModel, 
+            config['flashlex']['apiEndpoint'],
+            config['flashlex']['user'],
+            config['flashlex']['password'])
+
+
+# ======================================
 def main(argv):
     print("starting ledticker backend with flashlex.")
 
@@ -192,6 +280,7 @@ def main(argv):
     
     schedule.every(config['jobs']['cronWeather']['rate']).minutes.do(cronWeather)
     schedule.every(config['jobs']['cronForecast']['rate']).minutes.do(cronForecast)
+    schedule.every(config['jobs']['cronElectionBets']['rate']).minutes.do(cronElectionBets)
 
     while True:
         schedule.run_pending()
