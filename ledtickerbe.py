@@ -206,15 +206,17 @@ def handleRaceTable(table):
 
 
 def filterDemocratic(bets): 
-    if('Democratic' in bets['name']):
+    if('Democratic Primary' in bets['name']):
         return True
     else:
         return False
-    # letters = ['a', 'e', 'i', 'o', 'u'] 
-    # if (variable in letters): 
-    #     return True
-    # else: 
-    #     return False
+
+def filterRepublican(bets): 
+    if('Republican Primary' in bets['name']):
+        return True
+    else:
+        return False
+
 
 def parseRaces(tree):
     tables = tree.xpath('//div[@class="container"]/table')
@@ -232,35 +234,16 @@ def parseRaces(tree):
     return races
 
 
-def cronElectionBets():
-
-    print('getting election bets')
-
-    config = loadConfig()['ledtickerbe']
-
-    page = requests.get(config['electionbettingods']['url_main'])
-    tree = html.fromstring(page.content)
-    races = parseRaces(tree)
-
-    items = filter(filterDemocratic, races)
-
-#    {
-#       "name": "Republican Primary",
-#       "rankings": [
-#          {
-#             "name": "Trump",
-#             "value": 0.784
-#          },
+def sendElectionItems(items, color, config):
     for race in items:
-        
-        first = race['rankings'][0]
+        metricName = race['name']
+        first = race['rankings'][0] 
         name = first['name']
-        percentage = "{:.0%}".format(first['value'])
         messageModel = {
-                'body':'{0}|{1}|'.format(name, percentage),
-                'type':'weather',
-                'behavior': 'current',
-                'color':"#4287f5",
+                'body':'{0}|{1}|{2}'.format(metricName, name, first['value']),
+                'type':'pmetric',
+                'behavior': 'number',
+                'color': color,
                 'elapsed': 20.0
             }
 
@@ -272,6 +255,26 @@ def cronElectionBets():
             config['flashlex']['password'])
 
 
+
+def cronElectionBets():
+
+    print('getting election bets')
+
+    config = loadConfig()['ledtickerbe']
+
+    page = requests.get(config['electionbettingods']['url_main'])
+    tree = html.fromstring(page.content)
+    races = parseRaces(tree)
+    
+    # democratic
+    ditems = filter(filterDemocratic, races)
+    sendElectionItems(ditems, "#4287f5", config)
+
+    # republic
+    ritems = filter(filterRepublican, races)
+    sendElectionItems(ritems, "#fc2003", config) 
+
+    
 # ======================================
 def main(argv):
     print("starting ledticker backend with flashlex.")
