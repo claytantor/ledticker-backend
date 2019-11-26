@@ -14,7 +14,7 @@ import uuid
 from expiringdict import ExpiringDict
 from lxml import etree, html
 
-cache = ExpiringDict(max_len=20, max_age_seconds=600)
+cache = ExpiringDict(max_len=20, max_age_seconds=1000)
 
 def loadConfig():
 
@@ -177,7 +177,7 @@ def cronForecast():
             'type':'weather',
             'behavior': 'forecast',
             'color':"#cc00ff",
-            'elapsed': 20.0
+            'elapsed': 20.0 
         }
 
         sendFlashlexMessageToThing(
@@ -216,6 +216,13 @@ def filterRepublican(bets):
         return True
     else:
         return False
+
+def filterElection(bets): 
+    if('Presidential Election' in bets['name']):
+        return True
+    else:
+        return False
+
 
 
 def parseRaces(tree):
@@ -256,7 +263,7 @@ def sendElectionItems(items, color, config):
 
 
 
-def cronElectionBets():
+def cronElectionBets(): 
 
     print('getting election bets')
 
@@ -273,6 +280,10 @@ def cronElectionBets():
     # republic
     ritems = filter(filterRepublican, races)
     sendElectionItems(ritems, "#fc2003", config) 
+
+    # election
+    eitems = filter(filterElection, races)
+    sendElectionItems(eitems, "#aaaaaa", config)
 
     
 # ======================================
