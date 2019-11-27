@@ -319,7 +319,7 @@ def cronElectionBetsTrumpOut():
                 'body':'{0}|{1}|{2}'.format(page[0]['name'], value['name'], value['value']),
                 'type':'pmetric',
                 'behavior': 'number',
-                'color': '#fcb103',
+                'color': '#591d4e',
                 'elapsed': 20.0
             }
 
