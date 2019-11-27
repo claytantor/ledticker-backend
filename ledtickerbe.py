@@ -56,7 +56,6 @@ def sendFlashlexMessageToThing(thingId, messageModel, flashlexApiEndpoint, user,
     messageModel['_id'] = str(uuid.uuid4())
     messageModel['_hash'] = md5_hash.hexdigest()
 
-
     # check if its in the cache, if missing then send
     if(cache.get(messageModel['_hash']) == None):
         cache[messageModel['_hash']] = messageModel
@@ -188,7 +187,6 @@ def cronForecast():
             config['flashlex']['password'])
 
 
-
 def handleRaceTable(table):
     tree = html.fromstring(etree.tostring(table, pretty_print=True).decode("utf-8"))
     pval = tree.xpath('//p[@style="font-size: 55pt; margin-bottom:-10px"]/text()')
@@ -261,9 +259,7 @@ def sendElectionItems(items, color, config):
             config['flashlex']['user'],
             config['flashlex']['password'])
 
-
-
-def cronElectionBets(): 
+def cronElectionBetsMain(): 
 
     print('getting election bets')
 
@@ -279,22 +275,74 @@ def cronElectionBets():
 
     # republic
     ritems = filter(filterRepublican, races)
-    sendElectionItems(ritems, "#fc2003", config) 
+    sendElectionItems(ritems, "#ff2020", config) 
 
     # election
     eitems = filter(filterElection, races)
-    sendElectionItems(eitems, "#aaaaaa", config)
+    sendElectionItems(eitems, "#888888", config)
 
+def handleTableTrumpOut(table):
+    tree = html.fromstring(etree.tostring(table, pretty_print=True).decode("utf-8"))
+    pval = tree.xpath('//p[@style="font-size: 55pt; margin-bottom:-10px"]/text()')
+    #print(pval)
+    ival = tree.xpath('//img[@width="100"]/@src')
+    #print(ival)
+
+    items = []
+    for i in range(len(ival)):
+         name = ival[i].replace("/","").replace(".png","")
+         percent = round(float(pval[i].replace("%",""))/100.0, 4)
+         items.append({'name':name.replace("Trump",""),'value':percent})
     
-# ======================================
+    return items
+
+
+def cronElectionBetsTrumpOut(): 
+
+    print('getting election bets for trump out')
+
+    config = loadConfig()['ledtickerbe']
+
+    page = requests.get(config['electionbettingods']['url_trumpout'])
+    tree = html.fromstring(page.content)
+    tables = tree.xpath('//div[@class="container"]/table')
+
+    page = []
+    for i in range(len(tables)):
+        items = handleTableTrumpOut(tables[i])
+        if(i==0):
+            page.append({"name":"Trump Term", "values": items})
+
+    for value in page[0]['values']:
+        if 'OutEarly' in value['name']:
+            messageModel = {
+                'body':'{0}|{1}|{2}'.format(page[0]['name'], value['name'], value['value']),
+                'type':'pmetric',
+                'behavior': 'number',
+                'color': '#fcb103',
+                'elapsed': 20.0
+            }
+
+            sendFlashlexMessageToThing(
+                config['flashlex']['thingId'], 
+                messageModel, 
+                config['flashlex']['apiEndpoint'],
+                config['flashlex']['user'],
+                config['flashlex']['password'])
+
+
+
+
+# ======================================  
 def main(argv):
-    print("starting ledticker backend with flashlex.")
+    print("starting ledticker backend with flashlex. ")
 
     config = loadConfig()['ledtickerbe']
     
     schedule.every(config['jobs']['cronWeather']['rate']).minutes.do(cronWeather)
     schedule.every(config['jobs']['cronForecast']['rate']).minutes.do(cronForecast)
-    schedule.every(config['jobs']['cronElectionBets']['rate']).minutes.do(cronElectionBets)
+    schedule.every(config['jobs']['cronElectionBetsMain']['rate']).minutes.do(cronElectionBetsMain)
+    schedule.every(config['jobs']['cronElectionBetsTrumpOut']['rate']).minutes.do(cronElectionBetsTrumpOut)
 
     while True:
         schedule.run_pending()
