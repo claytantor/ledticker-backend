@@ -3,4 +3,4 @@ PyYAML>=5.1
 requests==2.20.0
 pytz==2018.9
 expiringdict==1.2.0
-lxml==4.4.1 
+lxml==4.6.2 
